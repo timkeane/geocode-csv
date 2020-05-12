@@ -114,6 +114,7 @@ const acquire = event => {
 
 const chooseLocation = event => {
   const button = $(event.target).toggleClass('pressed')
+  $('.pressed').not(button).removeClass('pressed')
   if (button.hasClass('pressed')) {
     map.on('click', acquire)
     editFeature = button.data('feature')
