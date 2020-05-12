@@ -14,6 +14,7 @@ const url = 'https://maps.nyc.gov/geoclient/v1/search.json?app_key=74DF5DB1D7320
 
 const hidden = ['geometry', 'X', 'Y', '_geocodeResp', '_input', '_source']
 
+let editFeature
 const map = new Basemap({target: 'map'})
 const locationMgr = new LocationMgr({map, url})
 const source = new Source()
@@ -103,20 +104,20 @@ const addrUpdate = event => {
 }
 
 const acquire = event => {
-  const  fid = editFeature.getId()
-  editFeature._geocoded = true
-  editFeature.setGeometry(new Point(event.coordinate))
-  $(`#fid_${fid} .address, #fid_${fid} .borough`).addClass('geocoded')
+  if (editFeature) {
+    const  fid = editFeature.getId()
+    editFeature._geocoded = true
+    editFeature.setGeometry(new Point(event.coordinate))
+    $(`#fid_${fid} .address, #fid_${fid} .borough`).addClass('geocoded')
+  }
 }
 
-let editFeature
 const chooseLocation = event => {
   const button = $(event.target).toggleClass('pressed')
   if (button.hasClass('pressed')) {
     map.on('click', acquire)
     editFeature = button.data('feature')
   } else {
-    map.off('click', acquire)
     editFeature = null
   }
 }
