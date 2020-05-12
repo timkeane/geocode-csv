@@ -12,9 +12,11 @@ import Point from 'ol/geom/Point'
 
 const url = 'https://maps.nyc.gov/geoclient/v1/search.json?app_key=74DF5DB1D7320A9A2&app_id=nyc-lib-example'
 
-const hidden = ['geometry', 'X', 'Y', '_geocodeResp', '_input', '_source']
-
 let editFeature
+const hidden = ['geometry', 'X', 'Y', '_geocodeResp', '_input', '_source']
+const facilityTypes = ["H+H Hospital", "H+H community site", "One Medical", "Antibody survey"]
+const testingTypes = ['Diagnostic', 'Antibody']
+
 const map = new Basemap({target: 'map'})
 const locationMgr = new LocationMgr({map, url})
 const source = new Source()
@@ -86,7 +88,8 @@ const tryAgain = feature => {
 }
 
 const boroSelect = '<select><option>Bronx</option><option>Brooklyn</option><option>Manhattan</option><option>Queens</option><option>Staten Island</option></select>'
-const addrInput = '<input>'
+const facTypeSelect = '<select><option>H+H Hospital</option><option>H+H community clinic</option><option>One Medical</option><option>Antibody survey</option></select>'
+const testTypeSelect = '<select><option>Diagnostic</option><option>Antiobody</option></select>'
 
 const boroUpdate = event => {
   const select = $(event.target)
@@ -100,6 +103,20 @@ const addrUpdate = event => {
   feature.set('ADDRESS', input.val())
   if (event.keyCode === 13) {
     tryAgain(feature)
+  }
+}
+const facilityTypeUpdate = event => {
+  const select = $(event.target)
+  if (select.val()) {
+    select.data('feature').set('FACILITY_TYPE', select.val())
+    select.parent().removeClass('invalid').addClass('valid')
+  }
+}
+const testTypeUpdate = event => {
+  const select = $(event.target)
+  if (select.val()) {
+    select.data('feature').set('TESTING_TYPE', select.val())
+    select.parent().removeClass('invalid').addClass('valid')
   }
 }
 
@@ -143,13 +160,27 @@ const showFailed = features => {
             const td = $(`<td class="${prop.toLowerCase()}"></td>`)
             tr.append(td)
             if (prop === 'ADDRESS') {
-              const input = $(addrInput).keyup(addrUpdate).data('feature', feature)
+              const input = $('<input>').keyup(addrUpdate).data('feature', feature)
               const button = $('<button>&#8599;</button>').click(chooseLocation).data('feature', feature)
               td.html(input.val(props[prop]))
               td.append(button)
             } else if (prop === 'BOROUGH') {
               const select = $(boroSelect).change(boroUpdate).data('feature', feature)
               td.html(select.val(props[prop]))
+            } else if (prop === 'FACILITY_TYPE') {
+              if ($.inArray(props[prop], facilityTypes) === -1) {
+                const select = $(facTypeSelect).change(facilityTypeUpdate).data('feature', feature)
+                td.html(select.val(props[prop])).addClass('invalid')
+              } else {
+                td.html(props[prop])
+              }
+            } else if (prop === 'TESTING_TYPE') {
+              if ($.inArray(props[prop], testingTypes) === -1) {
+                const select = $(testTypeSelect).change(testTypeUpdate).data('feature', feature)
+                td.html(select.val(props[prop])).addClass('invalid')
+              } else {
+                td.html(props[prop])
+              }
             } else {
               td.html(props[prop])
             }
@@ -164,12 +195,16 @@ const showFailed = features => {
   }
 }
 
+const failure = feature => {
+  return !feature.getGeometry() || 
+    $.inArray(feature.get('FACILITY_TYPE'), facilityTypes) == -1 || 
+    $.inArray(feature.get('TESTING_TYPE'), testingTypes) == -1
+}
+
 format.on('geocode-complete', () => {
   const failed = []
   source.getFeatures().forEach(feature => {
-    if (!feature.getGeometry()) {
-      failed.push(feature)
-    }
+    if (failure(feature)) failed.push(feature)
   })
   showFailed(failed)
 })
