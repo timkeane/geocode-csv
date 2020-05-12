@@ -1,4 +1,5 @@
 "NAME","ADDRESS","BOROUGH","FACILITY_TYPE","TESTING_TYPE","NYCHA_PRIORITY","WALK_IN","DAYS_OF_OPERATION","HOURS_OF_OPERATION","LOCATION_INFO","PRIORITIZATION_CRITERIA","APPOINTMENT_INFO",START_DATE
-"NYC H+ H / Gotham Health / Belvis","nowhere","Bronx","H+H community site","Diagnostic","Y","Y","Monday - Friday","9 AM - 3 PM","","Over 65 with pre-existing conditions","",""
+"NYC H+ H / Gotham Health / Belvis","800 Exterior Street","Bronx","H+H community site","Diagnostic","Y","Y","Monday - Friday","9 AM - 3 PM","","Over 65 with pre-existing conditions","",""
 "NYC H+ H / Gotham Health / Cumberland","100 North Portland Av","Brooklyn","H+H community site","Diagnostic","Y","Y","Monday - Saturday","9 AM - 3:30 PM","","Over 65 with pre-existing conditions","",""
 "NYC H+ H / Gotham Health / Dyckman","175 Nagle Avenue","Manhattan","H+H community site","Diagnostic","","Y","Monday - Friday","9 AM - 3:30 PM","","Over 65 with pre-existing conditions","",""
+"Fake","Bad Address","Manhattan","H+H community site","Diagnostic","","Y","Monday - Friday","9 AM - 3:30 PM","","Over 65 with pre-existing conditions","",""

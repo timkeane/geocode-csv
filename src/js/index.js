@@ -44,13 +44,15 @@ geocoder.on('geocoded', location => {
     const fid = feature.getId()
     const addr = location.name.split(',')[0].trim()
     const boro = location.name.split(',')[1].trim()
+    const center = location.coordinate
     feature._geocoded = true
     feature.set('ADDRESS', addr)
     feature.set('BOROUGH', boro)
-    feature.setGeometry(new Point(location.coordinate))
-    $(`#fid_${fid} input`).val(addr)
-    $(`#fid_${fid} select`).val(boro)
+    feature.setGeometry(new Point(center))
+    $(`#fid_${fid} input`).val(addr).parent().addClass('geocoded')
+    $(`#fid_${fid} select`).val(boro).parent().addClass('geocoded')
     geocoder._feature = null
+    map.getView().animate({center, zoom: 15})
   }
 })
 
@@ -82,20 +84,42 @@ const tryAgain = feature => {
   }
 }
 
-const boroSelect = $('<select><option>Bronx</option><option>Brooklyn</option><option>Manhattan</option><option>Queens</option><option>Staten Island</option></select>')
-const addrInput = $('<input>')
-boroSelect.change(() => {
-  const feature = boroSelect.data('feature')
-  feature.set('BOROUGH', boroSelect.val())
+const boroSelect = '<select><option>Bronx</option><option>Brooklyn</option><option>Manhattan</option><option>Queens</option><option>Staten Island</option></select>'
+const addrInput = '<input>'
+
+const boroUpdate = event => {
+  const select = $(event.target)
+  const feature = select.data('feature')
+  feature.set('BOROUGH', select.val())
   tryAgain(feature)
-})
-addrInput.keyup(event => {
+}
+const addrUpdate = event => {
+  const input = $(event.target)
+  const feature = input.data('feature')
+  feature.set('ADDRESS', input.val())
   if (event.keyCode === 13) {
-    const feature = addrInput.data('feature')
-    feature.set('ADDRESS', addrInput.val())
     tryAgain(feature)
   }
-})
+}
+
+const acquire = event => {
+  const  fid = editFeature.getId()
+  editFeature._geocoded = true
+  editFeature.setGeometry(new Point(event.coordinate))
+  $(`#fid_${fid} .address, #fid_${fid} .borough`).addClass('geocoded')
+}
+
+let editFeature
+const chooseLocation = event => {
+  const button = $(event.target).toggleClass('pressed')
+  if (button.hasClass('pressed')) {
+    map.on('click', acquire)
+    editFeature = button.data('feature')
+  } else {
+    map.off('click', acquire)
+    editFeature = null
+  }
+}
 
 const showFailed = features => {
   const table = $('.failed table')
@@ -117,11 +141,13 @@ const showFailed = features => {
             const td = $(`<td class="${prop.toLowerCase()}"></td>`)
             tr.append(td)
             if (prop === 'ADDRESS') {
-              addrInput.data('feature', feature)
-              td.html(addrInput.val(props[prop]))
+              const input = $(addrInput).keyup(addrUpdate).data('feature', feature)
+              const button = $('<button>&#8599;</button>').click(chooseLocation).data('feature', feature)
+              td.html(input.val(props[prop]))
+              td.append(button)
             } else if (prop === 'BOROUGH') {
-              boroSelect.data('feature', feature)
-              td.html(boroSelect.val(props[prop]))
+              const select = $(boroSelect).change(boroUpdate).data('feature', feature)
+              td.html(select.val(props[prop]))
             } else {
               td.html(props[prop])
             }
