@@ -16,7 +16,7 @@ const url = 'https://maps.nyc.gov/geoclient/v1/search.json?app_key=74DF5DB1D7320
 let editFeature
 const hidden = ['geometry', 'X', 'Y', '_geocodeResp', '_input', '_source']
 const facilityTypes = ["H+H Hospital", "H+H community site", "One Medical", "Antibody survey"]
-const testingTypes = ['Diagnostic', 'Antibody']
+const testingTypes = [] // ['Diagnostic', 'Antibody']
 
 const map = new Basemap({target: 'map'})
 const locationMgr = new LocationMgr({map, url})
@@ -90,7 +90,7 @@ const tryAgain = feature => {
 }
 
 const boroSelect = '<select><option>Bronx</option><option>Brooklyn</option><option>Manhattan</option><option>Queens</option><option>Staten Island</option></select>'
-const facTypeSelect = '<select><option>H+H Hospital</option><option>H+H community clinic</option><option>One Medical</option><option>Antibody survey</option></select>'
+const facTypeSelect = '<select><option>H+H Hospital</option><option>H+H community site</option><option>One Medical</option><option>Antibody survey</option></select>'
 const testTypeSelect = '<select><option>Diagnostic</option><option>Antibody</option></select>'
 
 const boroUpdate = event => {
@@ -179,11 +179,9 @@ const showFailed = features => {
               td.html(select.val(props[prop])).addClass('not-geocoded')
             } else if (prop === 'FACILITY_TYPE' && $.inArray(props[prop], facilityTypes) === -1) {
               const select = $(facTypeSelect).change(facilityTypeUpdate).data('feature', feature)
-              feature._invalid_facility_type = true
               td.html(select.val(props[prop])).addClass('invalid')
-            } else if (prop === 'TESTING_TYPE' && $.inArray(props[prop], testingTypes) === -1) {
+            } else if (prop === 'TESTING_TYPE' && testingTypes.length && $.inArray(props[prop], testingTypes) === -1) {
               const select = $(testTypeSelect).change(testTypeUpdate).data('feature', feature)
-              feature._invalid_testing_type = true
               td.html(select.val(props[prop])).addClass('invalid')
             } else {
               td.html(props[prop])
@@ -207,8 +205,13 @@ format.on('geocode-complete', () => {
     feature.invalid = () => {
       return !feature.getGeometry() ||
         $.inArray(feature.get('FACILITY_TYPE'), facilityTypes) == -1 ||
-        $.inArray(feature.get('TESTING_TYPE'), testingTypes) == -1
+        (testingTypes.length && $.inArray(feature.get('TESTING_TYPE'), testingTypes) == -1)
     }
+    console.warn(
+      `geom=${feature.getGeometry()}`,
+      `FACILITY_TYPE=${$.inArray(feature.get('FACILITY_TYPE'), facilityTypes) == -1}`,
+      `TESTING_TYPE=${$.inArray(feature.get('FACILITY_TYPE'), facilityTypes) == -1}`
+    )
     if (feature.invalid()) failed.push(feature)
   })
   showFailed(failed)
