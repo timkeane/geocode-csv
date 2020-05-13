@@ -125,7 +125,8 @@ const acquire = event => {
     const  fid = editFeature.getId()
     editFeature._geocoded = true
     editFeature.setGeometry(new Point(event.coordinate))
-    $(`#fid_${fid} .address, #fid_${fid} .borough`).addClass('geocoded')
+    editFeature.set('ADDRESS', $(`#fid_${fid} .address input`).addClass('geocoded').val())
+    editFeature.set('BOROUGH', $(`#fid_${fid} .borough select`).addClass('geocoded').val())
   }
 }
 
@@ -147,6 +148,7 @@ const showFailed = features => {
   if (features.length) {
     features.forEach((feature, i) => {
       const props = feature.getProperties()
+      const point = feature.getGeometry()
       const tr = $(`<tr id="fid_${feature.getId()}"></tr>`)
       if (props._input !== format.locationTemplate) {
         tbody.append(tr)
@@ -159,28 +161,20 @@ const showFailed = features => {
           if (props._input !== format.locationTemplate) {
             const td = $(`<td class="${prop.toLowerCase()}"></td>`)
             tr.append(td)
-            if (prop === 'ADDRESS') {
+            if (prop === 'ADDRESS' && !point) {
               const input = $('<input>').keyup(addrUpdate).data('feature', feature)
               const button = $('<button>&#8599;</button>').click(chooseLocation).data('feature', feature)
-              td.html(input.val(props[prop]))
+              td.html(input.val(props[prop])).addClass('not-geocoded')
               td.append(button)
-            } else if (prop === 'BOROUGH') {
+            } else if (prop === 'BOROUGH' && !point) {
               const select = $(boroSelect).change(boroUpdate).data('feature', feature)
-              td.html(select.val(props[prop]))
-            } else if (prop === 'FACILITY_TYPE') {
-              if ($.inArray(props[prop], facilityTypes) === -1) {
-                const select = $(facTypeSelect).change(facilityTypeUpdate).data('feature', feature)
-                td.html(select.val(props[prop])).addClass('invalid')
-              } else {
-                td.html(props[prop])
-              }
-            } else if (prop === 'TESTING_TYPE') {
-              if ($.inArray(props[prop], testingTypes) === -1) {
-                const select = $(testTypeSelect).change(testTypeUpdate).data('feature', feature)
-                td.html(select.val(props[prop])).addClass('invalid')
-              } else {
-                td.html(props[prop])
-              }
+              td.html(select.val(props[prop])).addClass('not-geocoded')
+            } else if (prop === 'FACILITY_TYPE' && $.inArray(props[prop], facilityTypes) === -1) {
+              const select = $(facTypeSelect).change(facilityTypeUpdate).data('feature', feature)
+              td.html(select.val(props[prop])).addClass('invalid')
+            } else if (prop === 'TESTING_TYPE' && $.inArray(props[prop], testingTypes) === -1) {
+              const select = $(testTypeSelect).change(testTypeUpdate).data('feature', feature)
+              td.html(select.val(props[prop])).addClass('invalid')
             } else {
               td.html(props[prop])
             }
