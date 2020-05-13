@@ -9,6 +9,7 @@ import CsvAddr from 'nyc-lib/nyc/ol/format/CsvAddr'
 import FeatureTip from 'nyc-lib/nyc/ol/FeatureTip'
 import style from './style'
 import Point from 'ol/geom/Point'
+import Popup from 'nyc-lib/nyc/ol/FeaturePopup'
 
 const url = 'https://maps.nyc.gov/geoclient/v1/search.json?app_key=74DF5DB1D7320A9A2&app_id=nyc-lib-example'
 
@@ -33,6 +34,7 @@ const format = new CsvAddr({
 
 map.addLayer(layer)
 locationMgr.mapLocator.layer.setStyle(style.geocode)
+new Popup({map, layers: [layer]})
 
 let photo = false
 $('.photo').click(() => {
@@ -48,12 +50,12 @@ geocoder.on('geocoded', location => {
     const addr = location.name.split(',')[0].trim()
     const boro = location.name.split(',')[1].trim()
     const center = location.coordinate
-    feature._geocoded = true
     feature.set('ADDRESS', addr)
     feature.set('BOROUGH', boro)
     feature.setGeometry(new Point(center))
-    $(`#fid_${fid} input`).val(addr).parent().addClass('geocoded')
-    $(`#fid_${fid} select`).val(boro).parent().addClass('geocoded')
+    $(`#fid_${fid} .address input`).val(addr)
+    $(`#fid_${fid} .borough select`).val(boro)
+    $(`#fid_${fid} .address, #fid_${fid} .borough`).removeClass('not-geocoded').addClass('geocoded')
     geocoder._feature = null
     map.getView().animate({center, zoom: 15})
   }
@@ -89,18 +91,22 @@ const tryAgain = feature => {
 
 const boroSelect = '<select><option>Bronx</option><option>Brooklyn</option><option>Manhattan</option><option>Queens</option><option>Staten Island</option></select>'
 const facTypeSelect = '<select><option>H+H Hospital</option><option>H+H community clinic</option><option>One Medical</option><option>Antibody survey</option></select>'
-const testTypeSelect = '<select><option>Diagnostic</option><option>Antiobody</option></select>'
+const testTypeSelect = '<select><option>Diagnostic</option><option>Antibody</option></select>'
 
 const boroUpdate = event => {
   const select = $(event.target)
   const feature = select.data('feature')
   feature.set('BOROUGH', select.val())
+  $('.pressed').removeClass('pressed')
+  editFeature = null
   tryAgain(feature)
 }
 const addrUpdate = event => {
   const input = $(event.target)
   const feature = input.data('feature')
   feature.set('ADDRESS', input.val())
+  $('.pressed').removeClass('pressed')
+  editFeature = null
   if (event.keyCode === 13) {
     tryAgain(feature)
   }
@@ -108,14 +114,16 @@ const addrUpdate = event => {
 const facilityTypeUpdate = event => {
   const select = $(event.target)
   if (select.val()) {
-    select.data('feature').set('FACILITY_TYPE', select.val())
+    const feature = select.data('feature')
+    feature.set('FACILITY_TYPE', select.val())
     select.parent().removeClass('invalid').addClass('valid')
   }
 }
 const testTypeUpdate = event => {
   const select = $(event.target)
   if (select.val()) {
-    select.data('feature').set('TESTING_TYPE', select.val())
+    const feature = select.data('feature')
+    feature.set('TESTING_TYPE', select.val())
     select.parent().removeClass('invalid').addClass('valid')
   }
 }
@@ -123,10 +131,10 @@ const testTypeUpdate = event => {
 const acquire = event => {
   if (editFeature) {
     const  fid = editFeature.getId()
-    editFeature._geocoded = true
     editFeature.setGeometry(new Point(event.coordinate))
-    editFeature.set('ADDRESS', $(`#fid_${fid} .address input`).addClass('geocoded').val())
-    editFeature.set('BOROUGH', $(`#fid_${fid} .borough select`).addClass('geocoded').val())
+    editFeature.set('ADDRESS', $(`#fid_${fid} .address input`).val())
+    editFeature.set('BOROUGH', $(`#fid_${fid} .borough select`).val())
+    $(`#fid_${fid} .address, #fid_${fid} .borough`).removeClass('not-geocoded').addClass('geocoded')
   }
 }
 
@@ -171,9 +179,11 @@ const showFailed = features => {
               td.html(select.val(props[prop])).addClass('not-geocoded')
             } else if (prop === 'FACILITY_TYPE' && $.inArray(props[prop], facilityTypes) === -1) {
               const select = $(facTypeSelect).change(facilityTypeUpdate).data('feature', feature)
+              feature._invalid_facility_type = true
               td.html(select.val(props[prop])).addClass('invalid')
             } else if (prop === 'TESTING_TYPE' && $.inArray(props[prop], testingTypes) === -1) {
               const select = $(testTypeSelect).change(testTypeUpdate).data('feature', feature)
+              feature._invalid_testing_type = true
               td.html(select.val(props[prop])).addClass('invalid')
             } else {
               td.html(props[prop])
@@ -189,16 +199,17 @@ const showFailed = features => {
   }
 }
 
-const failure = feature => {
-  return !feature.getGeometry() || 
-    $.inArray(feature.get('FACILITY_TYPE'), facilityTypes) == -1 || 
-    $.inArray(feature.get('TESTING_TYPE'), testingTypes) == -1
-}
-
 format.on('geocode-complete', () => {
   const failed = []
+  const features = source.getFeatures()
+  source.removeFeature(features[features.length - 1])
   source.getFeatures().forEach(feature => {
-    if (failure(feature)) failed.push(feature)
+    feature.invalid = () => {
+      return !feature.getGeometry() ||
+        $.inArray(feature.get('FACILITY_TYPE'), facilityTypes) == -1 ||
+        $.inArray(feature.get('TESTING_TYPE'), testingTypes) == -1
+    }
+    if (feature.invalid()) failed.push(feature)
   })
   showFailed(failed)
 })

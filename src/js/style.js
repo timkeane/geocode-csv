@@ -17,13 +17,15 @@ const geocode = new Style({
 })
 
 const location = feature => {
-  return new Style({
-    image: new Circle({
-      stroke: new Stroke({width: 1, color: '#000'}),
-      fill: new Fill({color: feature._geocoded ? 'rgba(0,255,0,.6)' : 'rgba(0,0,255,.6)'}),
-      radius: 8
+  if (typeof feature.invalid === 'function') {
+    return new Style({
+      image: new Circle({
+        stroke: new Stroke({width: 1, color: '#000'}),
+        fill: new Fill({color: feature.invalid() ? 'rgba(255,0,0,.6)' : 'rgba(0,255,0,.6)'}),
+        radius: 8
+      })
     })
-  })
+  }
 }
 
 export default {geocode, location}
