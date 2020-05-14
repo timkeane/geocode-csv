@@ -1,4 +1,6 @@
 import $ from 'jquery'
+import proj4 from 'proj4'
+import nyc from 'nyc-lib/nyc'
 import Source from 'ol/source/Vector'
 import Layer from 'ol/layer/Vector'
 import Papa from 'papaparse'
@@ -71,8 +73,17 @@ $('.load-csv').click(() => {
   const input = $('<input class="file-in" type="file">')
   const reader = new FileReader()
   reader.onload = () => {
+    const features = format.readFeatures(reader.result)
+    features.forEach(feature => {
+      const x = feature.get('X') * 1
+      const y = feature.get('Y') * 1
+      const coord = proj4('EPSG:2263', 'EPSG:3857', [x, y])
+      if (x > 0 && y > 0) {
+        feature.getGeometry(new Point(coord))
+      }
+    })
     source.clear()
-    source.addFeatures(format.readFeatures(reader.result))
+    source.addFeatures(features)
   }
   $('body').append(input)
   input.change(event => {
@@ -200,21 +211,18 @@ const showFailed = features => {
 format.on('geocode-complete', () => {
   const failed = []
   const features = source.getFeatures()
-  source.removeFeature(features[features.length - 1])
-  source.getFeatures().forEach(feature => {
-    feature.invalid = () => {
-      return !feature.getGeometry() ||
-        $.inArray(feature.get('FACILITY_TYPE'), facilityTypes) == -1 ||
-        (testingTypes.length && $.inArray(feature.get('TESTING_TYPE'), testingTypes) == -1)
-    }
-    console.warn(
-      `geom=${feature.getGeometry()}`,
-      `FACILITY_TYPE=${$.inArray(feature.get('FACILITY_TYPE'), facilityTypes) == -1}`,
-      `TESTING_TYPE=${$.inArray(feature.get('FACILITY_TYPE'), facilityTypes) == -1}`
-    )
-    if (feature.invalid()) failed.push(feature)
-  })
-  showFailed(failed)
+  if (features.length) {
+    source.removeFeature(features[features.length - 1])
+    source.getFeatures().forEach(feature => {
+      feature.invalid = () => {
+        return !feature.getGeometry() ||
+          $.inArray(feature.get('FACILITY_TYPE'), facilityTypes) == -1 ||
+          (testingTypes.length && $.inArray(feature.get('TESTING_TYPE'), testingTypes) == -1)
+      }
+      if (feature.invalid()) failed.push(feature)
+    })
+    showFailed(failed)
+  }
 })
 
 $('.save-csv').click(() => {
